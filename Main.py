@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import *
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl
+import requests
+import json
 
 CLIENT_ID = '1bf80eba491150561ba72093ebac49b3'
 REDIRECT_URL = 'http://52.79.237.120:5000/kakao_oauth'
@@ -19,6 +21,46 @@ class BrowserWindow(QMainWindow):
         self.setGeometry(800, 500, 400, 650)
         self.form_widget = FormWidget(self)
         self.setCentralWidget(self.form_widget)
+
+
+def get_access_token(code):
+    try:
+        print("kakao code: " + code)
+        url = "https://kauth.kakao.com/oauth/token"
+        payload ={"grant_type": "authorization_code", "client_id": CLIENT_ID, "redirect_uri": REDIRECT_URL, "code": code}
+
+        headers = {
+            'Content-Type': "application/x-www-form-urlencoded",
+            'Cache-Control': "no-cache",
+
+        }
+
+        response = requests.request("POST", url, data=payload, headers=headers)
+
+
+
+        access_token = json.loads(((response.text).encode('utf-8')))['access_token']
+        print("access token: " + access_token)
+
+
+        url = "https://kapi.kakao.com/v1/user/signup"
+
+        headers.update({'Authorization':"Bearer " + access_token})
+
+        response = requests.request("POST", url, headers=headers)
+
+        print("signup response: " + response.text)
+
+
+        url = "https://kapi.kakao.com/v1/user/me"
+
+        response = requests.request("POST", url, headers=headers)
+
+        print("me response: " + response.text)
+
+    except Exception as ex:
+        print(ex)
+
 
 
 class FormWidget(QWidget):
@@ -52,7 +94,7 @@ class FormWidget(QWidget):
         page = self.browser.page()
 
         # TODO 수정하세요
-        page.toPlainText(lambda text: print(text))
+        page.toPlainText(lambda code: get_access_token(code))
 
 
 class Manager:
